@@ -1,0 +1,55 @@
+name: cine_ai
+description: "An AI-assisted video editor that automatically edits raw footage into polished short-form content."
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.5.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State Management & Routing
+  flutter_riverpod: ^2.6.1
+  riverpod_annotation: ^2.6.1
+  go_router: ^14.6.2
+
+  # Local DB & Storage
+  drift: ^2.20.0
+  sqlite3_flutter_libs: ^0.5.25
+  path_provider: ^2.1.5
+  path: ^1.9.0
+
+  # Video & Audio Processing
+  
+  video_player: ^2.9.2
+  just_audio: ^0.9.42
+  
+
+  # AI & ML
+  
+ 
+
+  # Device & UI Utilities
+  image_picker: ^1.1.2
+  camera: ^0.12.1
+  permission_handler: ^11.3.1
+  share_plus: ^13.3.1
+  flutter_svg: ^2.0.14
+  lucide_icons: ^0.256.0
+  equatable: ^2.0.5
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  riverpod_generator: ^2.6.2
+  build_runner: ^2.4.13
+  drift_dev: ^2.20.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/models/
+    - assets/luts/
