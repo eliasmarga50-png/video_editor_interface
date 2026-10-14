@@ -1,14 +1,115 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/theme.dart';
+import '../widgets/cine_widgets.dart';
+
+class _Sample {
+  final String title;
+  final String meta;
+  final String duration;
+  final List<Color> colors;
+  final IconData icon;
+  final String? badge;
+  final String? heroTag;
+
+  const _Sample({
+    required this.title,
+    required this.meta,
+    required this.duration,
+    required this.colors,
+    required this.icon,
+    this.badge,
+    this.heroTag,
+  });
+}
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
+  static const List<_Sample> _templates = [
+    _Sample(
+      title: 'Cinematic Travel',
+      meta: '15s · 9:16',
+      duration: '0:15',
+      colors: [Color(0xFF0EA5E9), Color(0xFF6366F1)],
+      icon: Icons.flight_takeoff_rounded,
+      badge: 'HOT',
+    ),
+    _Sample(
+      title: 'Neon Cyberpunk',
+      meta: '12s · 9:16',
+      duration: '0:12',
+      colors: [Color(0xFFEC4899), Color(0xFF8B5CF6)],
+      icon: Icons.nightlife_rounded,
+    ),
+    _Sample(
+      title: 'Product Drop',
+      meta: '10s · 1:1',
+      duration: '0:10',
+      colors: [Color(0xFFF59E0B), Color(0xFFEF4444)],
+      icon: Icons.shopping_bag_outlined,
+    ),
+    _Sample(
+      title: 'Morning Routine',
+      meta: '20s · 9:16',
+      duration: '0:20',
+      colors: [Color(0xFF10B981), Color(0xFF3B82F6)],
+      icon: Icons.wb_sunny_outlined,
+    ),
+    _Sample(
+      title: 'Anime Opening',
+      meta: '15s · 16:9',
+      duration: '0:15',
+      colors: [Color(0xFF8B5CF6), Color(0xFFEC4899)],
+      icon: Icons.auto_awesome_rounded,
+    ),
+  ];
+
+  // Empty on purpose: shows the "Continue Editing" empty state.
+  static const List<_Sample> _draftSamples = [];
+
+  static const List<_Sample> _projects = [
+    _Sample(
+      title: 'Travel Vlog — Bali Sunset',
+      meta: 'Auto-edited · 9:16',
+      duration: '0:15',
+      colors: [Color(0xFFF59E0B), Color(0xFFEC4899)],
+      icon: Icons.beach_access_rounded,
+      badge: 'AUTO-EDIT',
+      heroTag: 'editor-preview',
+    ),
+    _Sample(
+      title: 'AI Short Story — Cyberpunk',
+      meta: 'AI generated · 9:16',
+      duration: '0:12',
+      colors: [Color(0xFF8B5CF6), Color(0xFF0EA5E9)],
+      icon: Icons.auto_stories_rounded,
+      badge: 'AI GEN',
+    ),
+    _Sample(
+      title: 'Product Launch — Sneaker Drop',
+      meta: 'AI generated · 1:1',
+      duration: '0:10',
+      colors: [Color(0xFFEF4444), Color(0xFFF59E0B)],
+      icon: Icons.shopping_bag_rounded,
+      badge: 'AI GEN',
+    ),
+    _Sample(
+      title: 'Daily Vlog — Morning Routine',
+      meta: 'Auto-edited · 9:16',
+      duration: '0:20',
+      colors: [Color(0xFF10B981), Color(0xFF3B82F6)],
+      icon: Icons.wb_twilight_rounded,
+      badge: 'AUTO-EDIT',
+    ),
+  ];
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final double bottomInset = MediaQuery.of(context).padding.bottom;
+
     return Scaffold(
       appBar: AppBar(
         title: Row(
@@ -19,6 +120,7 @@ class HomeScreen extends ConsumerWidget {
               decoration: BoxDecoration(
                 gradient: CineAITheme.accentGradient,
                 borderRadius: BorderRadius.circular(11),
+                boxShadow: CineAITheme.glow(alpha: .25, blur: 14),
               ),
               child: const Icon(
                 Icons.movie_filter_rounded,
@@ -31,388 +133,401 @@ class HomeScreen extends ConsumerWidget {
           ],
         ),
         actions: [
-          IconButton(
+          CircleIconButton(
+            icon: Icons.tune_rounded,
+            size: 40,
             tooltip: 'AI Lab settings',
-            onPressed: () => context.push('/lab'),
-            icon: const Icon(
-              Icons.tune_rounded,
-              color: CineAITheme.textSecondary,
-            ),
+            onTap: () => context.push('/lab'),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 20),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
-        children: [
-          Container(
-            padding: const EdgeInsets.all(22),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [
-                  Color(0xFF28204A),
-                  Color(0xFF172C4A),
-                  CineAITheme.surface,
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(
-                color: const Color(0xFF51437C).withValues(alpha: .65),
-              ),
+      body: AnimationLimiter(
+        child: ListView(
+          padding: EdgeInsets.fromLTRB(0, 8, 0, 28 + bottomInset),
+          children: AnimationConfiguration.toStaggeredList(
+            duration: const Duration(milliseconds: 420),
+            childAnimationBuilder: (widget) => SlideAnimation(
+              verticalOffset: 36,
+              child: FadeInAnimation(child: widget),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: .08),
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.auto_awesome,
-                        color: Color(0xFFC4B5FD),
-                        size: 14,
-                      ),
-                      SizedBox(width: 6),
-                      Text(
-                        'YOUR AI CREATIVE STUDIO',
-                        style: TextStyle(
-                          fontSize: 10,
-                          letterSpacing: 1.1,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 22),
-                Text(
-                  'Make your next\nvideo unforgettable.',
-                  style: Theme.of(context).textTheme.headlineLarge,
-                ),
-                const SizedBox(height: 10),
-                const Text(
-                  'Turn raw footage into scroll-stopping stories with '
-                  'AI-powered editing.',
-                  style: TextStyle(
-                    color: CineAITheme.textSecondary,
-                    height: 1.5,
-                  ),
-                ),
-                const SizedBox(height: 22),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: () => context.push('/setup'),
-                    icon: const Icon(Icons.add_rounded),
-                    label: const Text('Create a new project'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: CineAITheme.violet,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 28),
-          _sectionHeader(context, 'Quick actions', 'Pick your workflow'),
-          const SizedBox(height: 14),
-          Row(
             children: [
-              Expanded(
-                child: _actionCard(
-                  icon: Icons.auto_awesome_rounded,
-                  title: 'Auto edit',
-                  subtitle: 'Find the best moments',
-                  colors: const [
-                    CineAITheme.violet,
-                    CineAITheme.blue,
-                  ],
-                  onTap: () => context.push('/setup'),
+              _hero(),
+              const SizedBox(height: 26),
+              _pad(
+                const SectionHeader(
+                  title: 'Choose your path',
+                  subtitle: 'Two ways to make your next video',
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _actionCard(
-                  icon: Icons.movie_creation_outlined,
-                  title: 'AI workspace',
-                  subtitle: 'Tune your AI tools',
-                  colors: const [
-                    Color(0xFF0EA5E9),
-                    Color(0xFF6366F1),
-                  ],
-                  onTap: () => context.push('/lab'),
-                ),
+              const SizedBox(height: 14),
+              _pad(_paths(context)),
+              const SizedBox(height: 28),
+              _LoadGate(
+                placeholder: _skeleton(),
+                builder: (context) => _content(context),
               ),
             ],
           ),
-          const SizedBox(height: 28),
-          _sectionHeader(
-            context,
-            'Recent projects',
-            'Your creative queue',
+        ),
+      ),
+    );
+  }
+
+  Widget _pad(Widget child) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: child,
+    );
+  }
+
+  String _greeting() {
+    final int hour = DateTime.now().hour;
+    if (hour < 12) return 'Good morning';
+    if (hour < 18) return 'Good afternoon';
+    return 'Good evening';
+  }
+
+  Widget _hero() {
+    return _pad(
+      Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned(
+            right: -60,
+            top: -50,
+            child: IgnorePointer(
+              child: Container(
+                width: 240,
+                height: 240,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      CineAITheme.violet.withValues(alpha: .30),
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
+              ),
+            ),
           ),
-          const SizedBox(height: 14),
-          _projectCard(
-            context,
-            icon: Icons.landscape_rounded,
-            iconColor: const Color(0xFF67E8F9),
-            title: 'Weekend in the mountains',
-            detail: 'Vertical short · 00:32',
-            status: 'DRAFT',
-            onTap: () => context.push('/editor'),
-          ),
-          const SizedBox(height: 10),
-          _projectCard(
-            context,
-            icon: Icons.directions_walk_rounded,
-            iconColor: const Color(0xFFFBBF24),
-            title: 'City moments',
-            detail: 'Social reel · 00:18',
-            status: 'READY TO EDIT',
-            onTap: () => context.push('/editor'),
-          ),
-          const SizedBox(height: 28),
-          _sectionHeader(
-            context,
-            'Made for creators',
-            'Smart tools, less busywork',
-          ),
-          const SizedBox(height: 14),
-          _featureRow(
-            Icons.bolt_rounded,
-            'Automatic highlight detection',
-            'Finds movement, smiles and standout moments.',
-          ),
-          _featureRow(
-            Icons.graphic_eq_rounded,
-            'Beat-aware editing',
-            'Helps cuts feel connected to your soundtrack.',
-          ),
-          _featureRow(
-            Icons.color_lens_outlined,
-            'One-tap color mood',
-            'Give your footage a consistent visual tone.',
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${_greeting()} 👋',
+                style: const TextStyle(
+                  color: CineAITheme.textSecondary,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text.rich(
+                TextSpan(
+                  children: [
+                    const TextSpan(text: 'Create stunning\nvideos '),
+                    TextSpan(
+                      text: 'with AI',
+                      style: TextStyle(
+                        foreground: Paint()
+                          ..shader = CineAITheme.accentGradient.createShader(
+                            const Rect.fromLTWH(0, 0, 170, 40),
+                          ),
+                      ),
+                    ),
+                  ],
+                ),
+                style: const TextStyle(
+                  fontSize: 33,
+                  height: 1.15,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -1,
+                ),
+              ),
+              const SizedBox(height: 10),
+              const Text(
+                'Generate from a prompt, or let AI edit your footage.',
+                style: TextStyle(
+                  color: CineAITheme.textSecondary,
+                  fontSize: 13.5,
+                  height: 1.45,
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _sectionHeader(
-    BuildContext context,
-    String title,
-    String subtitle,
-  ) {
+  Widget _paths(BuildContext context) {
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: PathCard(
+              emoji: '✨',
+              title: 'Generate with AI',
+              subtitle: 'Type a prompt, get a video in seconds',
+              badge: 'From scratch',
+              colors: const [CineAITheme.violet, CineAITheme.blue],
+              onTap: () => context.push('/setup'),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: PathCard(
+              emoji: '🎬',
+              title: 'Auto-Edit My Footage',
+              subtitle: 'Upload raw clips, AI edits them for you',
+              badge: 'Zero editing',
+              colors: const [CineAITheme.blue, Color(0xFF22D3EE)],
+              // No upload route exists yet, so this points at the AI
+              // analysis step (which continues into /editor).
+              onTap: () => context.push('/analyzing'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Loading skeleton shown briefly before the carousels and grid appear.
+  Widget _skeleton() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          title,
-          style: Theme.of(context).textTheme.titleLarge,
+        _pad(const ShimmerBox(width: 160, height: 20, radius: 8)),
+        const SizedBox(height: 14),
+        SizedBox(
+          height: 196,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            physics: const NeverScrollableScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            children: const [
+              ShimmerBox(width: 138, height: 196),
+              SizedBox(width: 12),
+              ShimmerBox(width: 138, height: 196),
+              SizedBox(width: 12),
+              ShimmerBox(width: 138, height: 196),
+            ],
+          ),
         ),
-        const SizedBox(height: 3),
-        Text(
-          subtitle,
-          style: const TextStyle(
-            color: CineAITheme.textSecondary,
-            fontSize: 12,
+        const SizedBox(height: 28),
+        _pad(const ShimmerBox(width: 140, height: 20, radius: 8)),
+        const SizedBox(height: 14),
+        _pad(
+          const Row(
+            children: [
+              Expanded(child: ShimmerBox(height: 200)),
+              SizedBox(width: 12),
+              Expanded(child: ShimmerBox(height: 200)),
+            ],
           ),
         ),
       ],
     );
   }
 
-  Widget _actionCard({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required List<Color> colors,
-    required VoidCallback onTap,
-  }) {
-    return Material(
-      color: CineAITheme.surface,
-      borderRadius: BorderRadius.circular(18),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(18),
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.all(15),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: CineAITheme.border),
+  Widget _content(BuildContext context) {
+    return AnimationLimiter(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: AnimationConfiguration.toStaggeredList(
+          duration: const Duration(milliseconds: 420),
+          childAnimationBuilder: (widget) => SlideAnimation(
+            verticalOffset: 36,
+            child: FadeInAnimation(child: widget),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(colors: colors),
-                  borderRadius: BorderRadius.circular(13),
-                ),
-                child: Icon(icon, color: Colors.white),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                title,
-                style: const TextStyle(fontWeight: FontWeight.w800),
-              ),
-              const SizedBox(height: 5),
-              Text(
-                subtitle,
-                style: const TextStyle(
-                  color: CineAITheme.textSecondary,
-                  fontSize: 11,
-                  height: 1.35,
-                ),
-              ),
-            ],
-          ),
+          children: [
+            _trending(),
+            const SizedBox(height: 28),
+            _drafts(context),
+            const SizedBox(height: 28),
+            _recent(context),
+          ],
         ),
       ),
     );
   }
 
-  Widget _projectCard(
-    BuildContext context, {
-    required IconData icon,
-    required Color iconColor,
-    required String title,
-    required String detail,
-    required String status,
-    required VoidCallback onTap,
-  }) {
-    return Material(
-      color: CineAITheme.surface,
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: CineAITheme.border),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 54,
-                height: 58,
-                decoration: BoxDecoration(
-                  color: iconColor.withValues(alpha: .12),
-                  borderRadius: BorderRadius.circular(13),
-                ),
-                child: Icon(icon, color: iconColor, size: 27),
-              ),
-              const SizedBox(width: 13),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 5),
-                    Text(
-                      detail,
-                      style: const TextStyle(
-                        color: CineAITheme.textSecondary,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  const Icon(
-                    Icons.more_horiz_rounded,
-                    color: CineAITheme.textSecondary,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    status,
-                    style: const TextStyle(
-                      color: Color(0xFFA5B4FC),
-                      fontSize: 8,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: .6,
-                    ),
-                  ),
-                ],
-              ),
-            ],
+  Widget _trending() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _pad(
+          const SectionHeader(
+            title: 'Trending templates',
+            subtitle: 'Popular looks creators are using',
           ),
         ),
-      ),
+        const SizedBox(height: 14),
+        SizedBox(
+          height: 196,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            itemCount: _templates.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 12),
+            itemBuilder: (context, index) {
+              final _Sample t = _templates[index];
+              return SizedBox(
+                width: 138,
+                child: VideoThumbCard(
+                  title: t.title,
+                  meta: t.meta,
+                  colors: t.colors,
+                  icon: t.icon,
+                  badge: t.badge,
+                  duration: t.duration,
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 
-  Widget _featureRow(
-    IconData icon,
-    String title,
-    String subtitle,
-  ) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 13),
-      child: Row(
+  Widget _drafts(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _pad(
+          const SectionHeader(
+            title: 'Continue editing',
+            subtitle: 'Pick up where you left off',
+          ),
+        ),
+        const SizedBox(height: 14),
+        if (_draftSamples.isEmpty)
+          _pad(
+            SizedBox(
+              width: double.infinity,
+              child: AppCard(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 22,
+                ),
+                child: EmptyState(
+                  icon: Icons.video_library_outlined,
+                  message:
+                      'No drafts yet — your AI-edited projects will appear here',
+                  ctaLabel: 'Auto-edit my footage',
+                  onCta: () => context.push('/analyzing'),
+                ),
+              ),
+            ),
+          )
+        else
+          SizedBox(
+            height: 196,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              itemCount: _draftSamples.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 12),
+              itemBuilder: (context, index) {
+                final _Sample d = _draftSamples[index];
+                return SizedBox(
+                  width: 138,
+                  child: VideoThumbCard(
+                    title: d.title,
+                    meta: d.meta,
+                    colors: d.colors,
+                    icon: d.icon,
+                    badge: 'DRAFT',
+                    duration: d.duration,
+                    onTap: () => context.push('/editor'),
+                  ),
+                );
+              },
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _recent(BuildContext context) {
+    return _pad(
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: CineAITheme.surfaceElevated,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(
-              icon,
-              color: const Color(0xFFA78BFA),
-              size: 20,
-            ),
+          const SectionHeader(
+            title: 'Recent projects',
+            subtitle: 'Your latest creations',
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  subtitle,
-                  style: const TextStyle(
-                    color: CineAITheme.textSecondary,
-                    fontSize: 11,
-                  ),
-                ),
-              ],
+          const SizedBox(height: 14),
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: _projects.length,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              mainAxisSpacing: 12,
+              crossAxisSpacing: 12,
+              mainAxisExtent: 236,
             ),
+            itemBuilder: (context, index) {
+              final _Sample p = _projects[index];
+              return VideoThumbCard(
+                title: p.title,
+                meta: p.meta,
+                colors: p.colors,
+                icon: p.icon,
+                badge: p.badge,
+                duration: p.duration,
+                heroTag: p.heroTag,
+                onTap: () => context.push('/editor'),
+              );
+            },
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Shows [placeholder] (shimmer skeleton) briefly, then fades in [builder].
+class _LoadGate extends StatefulWidget {
+  final Widget placeholder;
+  final WidgetBuilder builder;
+
+  const _LoadGate({required this.placeholder, required this.builder});
+
+  @override
+  State<_LoadGate> createState() => _LoadGateState();
+}
+
+class _LoadGateState extends State<_LoadGate> {
+  bool _ready = false;
+
+  @override
+  void initState() {
+    super.initState();
+    Future.delayed(const Duration(milliseconds: 900), () {
+      if (!mounted) return;
+      setState(() => _ready = true);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 300),
+      child: _ready
+          ? KeyedSubtree(
+              key: const ValueKey('ready'),
+              child: widget.builder(context),
+            )
+          : KeyedSubtree(
+              key: const ValueKey('loading'),
+              child: widget.placeholder,
+            ),
     );
   }
 }
