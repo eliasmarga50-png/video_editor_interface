@@ -1,4 +1,6 @@
+
 import 'package:flutter/material.dart';
+import '../../core/theme/theme.dart';
 
 class TimelineCard extends StatelessWidget {
   final String title;
@@ -15,24 +17,63 @@ class TimelineCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 130,
+      width: 138,
       margin: const EdgeInsets.only(right: 10),
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E1E24),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF2E2E38)),
+        color: CineAITheme.surfaceElevated,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: CineAITheme.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
-          const SizedBox(height: 6),
+          Row(
+            children: [
+              Container(
+                width: 7,
+                height: 7,
+                decoration: BoxDecoration(
+                  color: accentColor,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 7),
+              Expanded(
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: CineAITheme.textPrimary,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(color: accentColor.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(4)),
-            child: Text(subtitle, style: TextStyle(color: accentColor, fontSize: 9, fontWeight: FontWeight.bold)),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 7,
+              vertical: 4,
+            ),
+            decoration: BoxDecoration(
+              color: accentColor.withValues(alpha: .14),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text(
+              subtitle,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: accentColor,
+                fontSize: 9,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
           ),
         ],
       ),
