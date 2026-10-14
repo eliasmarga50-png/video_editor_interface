@@ -1,4 +1,6 @@
+
 import 'package:flutter/material.dart';
+import '../../core/theme/theme.dart';
 
 class AIExplainCard extends StatelessWidget {
   final String title;
@@ -17,29 +19,74 @@ class AIExplainCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
-      padding: const EdgeInsets.all(14),
+      margin: const EdgeInsets.symmetric(
+        vertical: 6,
+        horizontal: 16,
+      ),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF16161A),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFF22222B)),
+        color: CineAITheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: CineAITheme.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(title, style: const TextStyle(color: Color(0xFF8B5CF6), fontWeight: FontWeight.bold, fontSize: 13)),
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    color: Color(0xFFC4B5FD),
+                    fontWeight: FontWeight.w800,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(color: const Color(0xFF8B5CF6).withValues(alpha: 0.15), borderRadius: BorderRadius.circular(6)),
-                child: Text(confidence, style: const TextStyle(color: Color(0xFF8B5CF6), fontSize: 10, fontWeight: FontWeight.bold)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8,
+                  vertical: 5,
+                ),
+                decoration: BoxDecoration(
+                  color: CineAITheme.violet.withValues(alpha: .15),
+                  borderRadius: BorderRadius.circular(7),
+                ),
+                child: Text(
+                  confidence,
+                  style: const TextStyle(
+                    color: Color(0xFFC4B5FD),
+                    fontSize: 9,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 6),
-          Text(reason, style: const TextStyle(color: Colors.white, fontSize: 12)),
+          const SizedBox(height: 10),
+          Text(
+            reason,
+            style: const TextStyle(
+              color: CineAITheme.textSecondary,
+              fontSize: 12,
+              height: 1.5,
+            ),
+          ),
+          if (onRegenerate != null) ...[
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                onPressed: onRegenerate,
+                icon: const Icon(
+                  Icons.refresh_rounded,
+                  size: 16,
+                ),
+                label: const Text('Regenerate'),
+              ),
+            ),
+          ],
         ],
       ),
     );
