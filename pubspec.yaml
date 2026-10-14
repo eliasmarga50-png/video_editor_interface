@@ -4,7 +4,7 @@ publish_to: "none"
 version: 1.0.0+1
 
 environment:
-  sdk: ">=3.5.0 <4.0.0"
+  sdk: ">=3.6.0 <4.0.0"
 
 dependencies:
   flutter:
@@ -22,14 +22,8 @@ dependencies:
   path: ^1.9.0
 
   # Video & Audio Processing
-  
   video_player: ^2.9.2
   just_audio: ^0.9.42
-  
-
-  # AI & ML
-  
- 
 
   # Device & UI Utilities
   image_picker: ^1.1.2
@@ -39,6 +33,11 @@ dependencies:
   flutter_svg: ^2.0.14
   lucide_icons: ^0.256.0
   equatable: ^2.0.5
+
+  # UI polish (added for the redesign)
+  google_fonts: ^6.2.1
+  shimmer: ^3.0.0
+  flutter_staggered_animations: ^1.1.1
 
 dev_dependencies:
   flutter_test:
