@@ -1,4 +1,6 @@
+
 import 'package:flutter/material.dart';
+import 'core/theme/theme.dart';
 import 'presentation/router/app_router.dart';
 
 class CineAIApp extends StatelessWidget {
@@ -9,12 +11,7 @@ class CineAIApp extends StatelessWidget {
     return MaterialApp.router(
       title: 'CineAI',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF0F0F13),
-        primaryColor: const Color(0xFF8B5CF6),
-        useMaterial3: true,
-      ),
+      theme: CineAITheme.dark,
       routerConfig: appRouter,
     );
   }
