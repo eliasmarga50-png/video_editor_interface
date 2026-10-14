@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import '../../core/theme/theme.dart';
 
@@ -21,9 +20,17 @@ class TimelineCard extends StatelessWidget {
       margin: const EdgeInsets.only(right: 10),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: CineAITheme.surfaceElevated,
+        gradient: LinearGradient(
+          colors: [
+            accentColor.withValues(alpha: .22),
+            CineAITheme.surfaceElevated,
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: CineAITheme.border),
+        border: Border.all(color: accentColor.withValues(alpha: .45)),
+        boxShadow: CineAITheme.softShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -37,6 +44,12 @@ class TimelineCard extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: accentColor,
                   shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: accentColor.withValues(alpha: .7),
+                      blurRadius: 6,
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(width: 7),
@@ -61,7 +74,7 @@ class TimelineCard extends StatelessWidget {
               vertical: 4,
             ),
             decoration: BoxDecoration(
-              color: accentColor.withValues(alpha: .14),
+              color: accentColor.withValues(alpha: .16),
               borderRadius: BorderRadius.circular(6),
             ),
             child: Text(
@@ -72,6 +85,7 @@ class TimelineCard extends StatelessWidget {
                 color: accentColor,
                 fontSize: 9,
                 fontWeight: FontWeight.w900,
+                letterSpacing: .3,
               ),
             ),
           ),
