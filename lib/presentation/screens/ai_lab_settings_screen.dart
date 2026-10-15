@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import '../../core/theme/theme.dart';
+import '../../application/providers/auth_providers.dart';
+import '../../domain/value_objects/user_role.dart';
 import '../widgets/cine_widgets.dart';
+import '../widgets/role_gate.dart';
 
 class AILabSettingsScreen extends ConsumerStatefulWidget {
   const AILabSettingsScreen({super.key});
@@ -152,6 +155,27 @@ class _AILabSettingsScreenState
                   ],
                 ),
               ),
+              const SizedBox(height: 28),
+              AppCard(
+                onTap: _confirmSignOut,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                child: const Row(
+                  children: [
+                    Icon(Icons.logout_rounded, color: CineAITheme.danger, size: 20),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Sign out',
+                        style: TextStyle(
+                          color: CineAITheme.danger,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13.5,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
               const SizedBox(height: 20),
               const Row(
                 children: [
@@ -180,7 +204,38 @@ class _AILabSettingsScreenState
     );
   }
 
+  Future<void> _confirmSignOut() async {
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: CineAITheme.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(CineAITheme.cardRadius),
+        ),
+        title: const Text('Sign out?'),
+        content: const Text('You’ll need to sign in again to keep editing.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Sign out'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      // The router redirect takes the user to the sign-in screen.
+      await ref.read(authControllerProvider.notifier).signOut();
+    }
+  }
+
   Widget _profileHeader() {
+    final user = ref.watch(authControllerProvider).user;
+
     return Column(
       children: [
         Container(
@@ -205,20 +260,41 @@ class _AILabSettingsScreenState
           ),
         ),
         const SizedBox(height: 14),
-        const Text(
-          'Creator Studio',
-          style: TextStyle(
+        Text(
+          (user != null && user.name.isNotEmpty) ? user.name : 'Creator Studio',
+          style: const TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.w800,
             letterSpacing: -.4,
           ),
         ),
         const SizedBox(height: 3),
-        const Text(
-          '@cineai.creator',
-          style: TextStyle(
+        Text(
+          user?.email ?? '@cineai.creator',
+          style: const TextStyle(
             color: CineAITheme.textSecondary,
             fontSize: 12.5,
+          ),
+        ),
+        RoleGate(
+          minRole: UserRole.pro,
+          child: Padding(
+            padding: const EdgeInsets.only(top: 10),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                gradient: CineAITheme.accentGradient,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Text(
+                'PRO',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1,
+                ),
+              ),
+            ),
           ),
         ),
       ],
