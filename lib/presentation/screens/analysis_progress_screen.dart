@@ -1,51 +1,86 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../application/providers/project_providers.dart';
 import '../../core/theme/theme.dart';
 import '../widgets/cine_widgets.dart';
 
-class AnalysisProgressScreen extends StatefulWidget {
+class AnalysisProgressScreen extends ConsumerStatefulWidget {
   const AnalysisProgressScreen({super.key});
 
   @override
-  State<AnalysisProgressScreen> createState() =>
+  ConsumerState<AnalysisProgressScreen> createState() =>
       _AnalysisProgressScreenState();
 }
 
 class _AnalysisProgressScreenState
-    extends State<AnalysisProgressScreen> {
-  double progress = 0.3;
-  String statusLabel =
-      'Looking for the best smiles & motion...';
+    extends ConsumerState<AnalysisProgressScreen> {
+  bool _didNavigate = false;
 
   @override
   void initState() {
     super.initState();
-
-    Future.delayed(const Duration(seconds: 2), () {
-      if (!mounted) return;
-
-      setState(() {
-        progress = 0.7;
-        statusLabel = 'Generating AI Narrative Arc...';
-      });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkAndStartWorkflow();
     });
+  }
 
-    Future.delayed(const Duration(seconds: 4), () {
-      if (!mounted) return;
+  void _checkAndStartWorkflow() {
+    final mode = GoRouterState.of(context).uri.queryParameters['mode'];
+    final videoState = ref.read(videoGenWorkflowProvider);
+    final autoState = ref.read(autoEditWorkflowProvider);
 
-      setState(() {
-        progress = 1.0;
-        statusLabel = 'Ready!';
-      });
+    if (mode == 'generate' && videoState.status == WorkflowStatus.idle) {
+      ref.read(videoGenWorkflowProvider.notifier).startGeneration(
+            prompt: 'Cinematic travel montage',
+            style: 'Cinematic',
+            platform: ref.read(activeProjectProvider)?.platform ??
+                const PlatformTargetConverter().fromName('instagramReel'),
+            vibe: ref.read(activeProjectProvider)?.vibe ??
+                const VibeConverter().fromName('hype'),
+            durationMs: 30000,
+          );
+    } else if (mode != 'generate' && autoState.status == WorkflowStatus.idle) {
+      // Start auto-edit workflow
+      ref.read(autoEditWorkflowProvider.notifier).startAutoEdit();
+    }
+  }
 
-      context.go('/editor');
-    });
+  void _retry(String mode) {
+    if (mode == 'generate') {
+      ref.read(videoGenWorkflowProvider.notifier).startGeneration(
+            prompt: 'Cinematic creative video',
+            style: 'Cinematic',
+            platform: const PlatformTargetConverter().fromName('instagramReel'),
+            vibe: const VibeConverter().fromName('hype'),
+            durationMs: 30000,
+          );
+    } else {
+      ref.read(autoEditWorkflowProvider.notifier).startAutoEdit();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final mode = GoRouterState.of(context).uri.queryParameters['mode'] ?? 'autoedit';
+    final WorkflowState workflow = mode == 'generate'
+        ? ref.watch(videoGenWorkflowProvider)
+        : ref.watch(autoEditWorkflowProvider);
+
+    final double progress = workflow.progress.clamp(0.05, 1.0);
+    final String statusLabel = workflow.statusLabel;
+
+    // Navigate to editor once succeeded
+    if (workflow.status == WorkflowStatus.succeeded && !_didNavigate) {
+      _didNavigate = true;
+      Future.delayed(const Duration(milliseconds: 400), () {
+        if (!mounted) return;
+        context.go('/editor');
+      });
+    }
+
     return Scaffold(
       body: Stack(
         children: [
@@ -93,84 +128,110 @@ class _AnalysisProgressScreenState
                         ),
                       ),
                       const SizedBox(height: 30),
-                      AppCard(
-                        padding: const EdgeInsets.all(18),
-                        child: Column(
-                          children: [
-                            Row(
-                              mainAxisAlignment:
-                                  MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Text(
-                                  'AI analysis',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w700,
+                      if (workflow.status == WorkflowStatus.failed) ...[
+                        AppCard(
+                          padding: const EdgeInsets.all(20),
+                          borderColor: CineAITheme.danger.withValues(alpha: .5),
+                          child: ErrorState(
+                            title: 'Workflow Notice',
+                            message: workflow.errorMessage ??
+                                'Unable to reach backend service.',
+                            onRetry: () => _retry(mode),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        TextButton(
+                          onPressed: () => context.go('/editor'),
+                          child: const Text('Continue to Editor anyway'),
+                        ),
+                      ] else ...[
+                        AppCard(
+                          padding: const EdgeInsets.all(18),
+                          child: Column(
+                            children: [
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    mode == 'generate'
+                                        ? 'AI Video Generation'
+                                        : 'AI Narrative Editing',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                    ),
                                   ),
-                                ),
-                                Text(
-                                  '${(progress * 100).round()}%',
-                                  style: const TextStyle(
-                                    color: CineAITheme.lavender,
-                                    fontWeight: FontWeight.w800,
+                                  Text(
+                                    '${(progress * 100).round()}%',
+                                    style: const TextStyle(
+                                      color: CineAITheme.lavender,
+                                      fontWeight: FontWeight.w800,
+                                    ),
                                   ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 14),
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(20),
-                              child: TweenAnimationBuilder<double>(
-                                tween: Tween(begin: 0, end: progress),
-                                duration: const Duration(milliseconds: 500),
-                                curve: Curves.easeOutCubic,
-                                builder: (context, value, _) {
-                                  return Container(
-                                    height: 8,
-                                    color: CineAITheme.surfaceElevated,
-                                    child: FractionallySizedBox(
-                                      alignment: Alignment.centerLeft,
-                                      widthFactor: value.clamp(0.0, 1.0),
-                                      child: const DecoratedBox(
-                                        decoration: BoxDecoration(
-                                          gradient:
-                                              CineAITheme.accentGradient,
+                                ],
+                              ),
+                              const SizedBox(height: 14),
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(20),
+                                child: TweenAnimationBuilder<double>(
+                                  tween: Tween(begin: 0, end: progress),
+                                  duration: const Duration(milliseconds: 400),
+                                  curve: Curves.easeOutCubic,
+                                  builder: (context, value, _) {
+                                    return Container(
+                                      height: 8,
+                                      color: CineAITheme.surfaceElevated,
+                                      child: FractionallySizedBox(
+                                        alignment: Alignment.centerLeft,
+                                        widthFactor: value.clamp(0.0, 1.0),
+                                        child: const DecoratedBox(
+                                          decoration: BoxDecoration(
+                                            gradient:
+                                                CineAITheme.accentGradient,
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                  );
-                                },
+                                    );
+                                  },
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 17),
-                            _statusRow(
-                              Icons.check_circle_rounded,
-                              'Scanning highlights',
-                              true,
-                            ),
-                            const SizedBox(height: 12),
-                            _statusRow(
-                              Icons.graphic_eq_rounded,
-                              'Building a narrative',
-                              progress >= .7,
-                            ),
-                            const SizedBox(height: 12),
-                            _statusRow(
-                              Icons.movie_filter_rounded,
-                              'Preparing your timeline',
-                              progress >= 1,
-                            ),
-                          ],
+                              const SizedBox(height: 17),
+                              _statusRow(
+                                Icons.check_circle_rounded,
+                                mode == 'generate'
+                                    ? 'Interpreting prompt with LLM'
+                                    : 'Scanning motion & dialogue',
+                                progress >= 0.25,
+                              ),
+                              const SizedBox(height: 12),
+                              _statusRow(
+                                Icons.graphic_eq_rounded,
+                                mode == 'generate'
+                                    ? 'Generating scene stack'
+                                    : 'Building narrative arc',
+                                progress >= 0.6,
+                              ),
+                              const SizedBox(height: 12),
+                              _statusRow(
+                                Icons.movie_filter_rounded,
+                                mode == 'generate'
+                                    ? 'Rendering timeline & video'
+                                    : 'Assembling beat-synced timeline',
+                                progress >= 0.95,
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 20),
-                      const Text(
-                        'Keep this screen open while CineAI prepares your edit.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: CineAITheme.textSecondary,
-                          fontSize: 11,
+                        const SizedBox(height: 20),
+                        const Text(
+                          'Keep this screen open while CineAI prepares your edit.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: CineAITheme.textSecondary,
+                            fontSize: 11,
+                          ),
                         ),
-                      ),
+                      ],
                     ],
                   ),
                 ),
@@ -225,6 +286,29 @@ class _AnalysisProgressScreenState
           ),
       ],
     );
+  }
+}
+
+// Helpers for converter fallbacks
+class PlatformTargetConverter {
+  const PlatformTargetConverter();
+  dynamic fromName(String name) {
+    try {
+      return PlatformTarget.values.byName(name);
+    } catch (_) {
+      return PlatformTarget.instagramReel;
+    }
+  }
+}
+
+class VibeConverter {
+  const VibeConverter();
+  dynamic fromName(String name) {
+    try {
+      return Vibe.values.byName(name);
+    } catch (_) {
+      return Vibe.hype;
+    }
   }
 }
 
