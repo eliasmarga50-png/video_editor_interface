@@ -3,21 +3,93 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:video_player/video_player.dart';
+import '../../application/providers/project_providers.dart';
 import '../../core/theme/theme.dart';
+import '../../domain/entities/highlight_moment.dart';
 import '../widgets/cine_widgets.dart';
 
-class EditorTimelineScreen extends ConsumerWidget {
+class EditorTimelineScreen extends ConsumerStatefulWidget {
   const EditorTimelineScreen({super.key});
 
-  // Timeline scale: 24 logical pixels per second, 32 seconds total.
+  @override
+  ConsumerState<EditorTimelineScreen> createState() => _EditorTimelineScreenState();
+}
+
+class _EditorTimelineScreenState extends ConsumerState<EditorTimelineScreen> {
+  // Timeline scale: 24 logical pixels per second
   static const double _pxPerSecond = 24;
-  static const int _totalSeconds = 32;
+
+  VideoPlayerController? _videoController;
+  bool _isPlaying = false;
+  String? _loadedUrl;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  void initState() {
+    super.initState();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _checkVideoController();
+  }
+
+  void _checkVideoController() {
+    final project = ref.read(activeProjectProvider);
+    final videoUrl = project?.videoUrl;
+
+    if (videoUrl != null && videoUrl != _loadedUrl && videoUrl.isNotEmpty) {
+      _loadedUrl = videoUrl;
+      _videoController?.dispose();
+
+      _videoController = VideoPlayerController.networkUrl(Uri.parse(videoUrl))
+        ..initialize().then((_) {
+          if (!mounted) return;
+          setState(() {});
+        }).catchError((_) {
+          // If video failed to load, fallback to preview
+        });
+
+      _videoController?.addListener(() {
+        if (!mounted) return;
+        final playing = _videoController?.value.isPlaying ?? false;
+        if (playing != _isPlaying) {
+          setState(() => _isPlaying = playing);
+        }
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _videoController?.dispose();
+    super.dispose();
+  }
+
+  void _togglePlay() {
+    if (_videoController == null || !_videoController!.value.isInitialized) {
+      setState(() => _isPlaying = !_isPlaying);
+      return;
+    }
+
+    if (_videoController!.value.isPlaying) {
+      _videoController!.pause();
+    } else {
+      _videoController!.play();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final bool canPop = Navigator.of(context).canPop();
-    final double topInset =
-        MediaQuery.of(context).padding.top + kToolbarHeight;
+    final double topInset = MediaQuery.of(context).padding.top + kToolbarHeight;
+    final project = ref.watch(activeProjectProvider);
+
+    final title = project?.title ?? 'Travel Vlog — Bali Sunset';
+    final platformName = project?.platform.name ?? '9:16 vertical';
+    final vibeLabel = project?.vibe.label ?? 'Hype';
+    final totalSeconds = (project?.targetLengthMs ?? 30000) ~/ 1000;
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -40,16 +112,18 @@ class EditorTimelineScreen extends ConsumerWidget {
               )
             : null,
         titleSpacing: canPop ? 4 : 20,
-        title: const Column(
+        title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Travel Vlog — Bali Sunset',
-              style: TextStyle(fontSize: 15),
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 15),
             ),
             Text(
-              'Draft project · 9:16 vertical',
-              style: TextStyle(
+              '$vibeLabel · $platformName · ${totalSeconds}s',
+              style: const TextStyle(
                 color: CineAITheme.textSecondary,
                 fontSize: 10,
                 fontWeight: FontWeight.w500,
@@ -74,9 +148,9 @@ class EditorTimelineScreen extends ConsumerWidget {
             tooltip: 'Export',
             onTap: () {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
+                SnackBar(
                   content: Text(
-                    'Exporting video with platform preset...',
+                    'Exporting "$title" in high resolution...',
                   ),
                 ),
               );
@@ -87,17 +161,20 @@ class EditorTimelineScreen extends ConsumerWidget {
       ),
       body: Column(
         children: [
-          Expanded(child: _preview(topInset)),
-          _panel(context),
+          Expanded(child: _preview(topInset, project, totalSeconds)),
+          _panel(context, project, totalSeconds),
         ],
       ),
     );
   }
 
   // ---------------------------------------------------------------------------
-  // Full-bleed vertical preview
+  // Full-bleed video preview
   // ---------------------------------------------------------------------------
-  Widget _preview(double topInset) {
+  Widget _preview(double topInset, ActiveProject? project, int totalSeconds) {
+    final bool hasVideo =
+        _videoController != null && _videoController!.value.isInitialized;
+
     return Hero(
       tag: 'editor-preview',
       child: Material(
@@ -119,11 +196,42 @@ class EditorTimelineScreen extends ConsumerWidget {
           child: Stack(
             alignment: Alignment.center,
             children: [
-              Icon(
-                Icons.landscape_rounded,
-                size: 150,
-                color: Colors.white.withValues(alpha: .08),
+              if (hasVideo)
+                Positioned.fill(
+                  child: FittedBox(
+                    fit: BoxFit.cover,
+                    child: SizedBox(
+                      width: _videoController!.value.size.width,
+                      height: _videoController!.value.size.height,
+                      child: VideoPlayer(_videoController!),
+                    ),
+                  ),
+                )
+              else
+                Icon(
+                  Icons.landscape_rounded,
+                  size: 150,
+                  color: Colors.white.withValues(alpha: .08),
+                ),
+
+              // Gradient scrim overlay
+              Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.black.withValues(alpha: .45),
+                        Colors.transparent,
+                        Colors.black.withValues(alpha: .6),
+                      ],
+                      stops: const [0.0, 0.4, 1.0],
+                    ),
+                  ),
+                ),
               ),
+
               Positioned(
                 top: topInset + 8,
                 left: 20,
@@ -134,43 +242,53 @@ class EditorTimelineScreen extends ConsumerWidget {
                 right: 20,
                 child: _previewPill(Icons.hd_rounded, '1080P'),
               ),
-              Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 68,
-                    height: 68,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: .12),
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: .25),
+
+              // Center play/pause control
+              GestureDetector(
+                onTap: _togglePlay,
+                behavior: HitTestBehavior.opaque,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 68,
+                      height: 68,
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: .35),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: .3),
+                        ),
+                      ),
+                      child: Icon(
+                        _isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                        size: 40,
+                        color: Colors.white,
                       ),
                     ),
-                    child: const Icon(
-                      Icons.play_arrow_rounded,
-                      size: 40,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'AI Video Preview',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w800,
-                      fontSize: 15,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'Your edit, frame by frame',
-                    style: TextStyle(
-                      color: CineAITheme.textSecondary,
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
+                    if (!hasVideo) ...[
+                      const SizedBox(height: 16),
+                      Text(
+                        project?.title ?? 'AI Video Preview',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 15,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      const Text(
+                        'Your edit, frame by frame',
+                        style: TextStyle(
+                          color: CineAITheme.textSecondary,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
               ),
+
+              // Bottom timeline scrubber on video
               Positioned(
                 left: 20,
                 right: 20,
@@ -187,7 +305,11 @@ class EditorTimelineScreen extends ConsumerWidget {
                             color: Colors.white.withValues(alpha: .18),
                           ),
                           FractionallySizedBox(
-                            widthFactor: .25,
+                            widthFactor: hasVideo
+                                ? (_videoController!.value.position.inMilliseconds /
+                                        math.max(1, _videoController!.value.duration.inMilliseconds))
+                                    .clamp(0.0, 1.0)
+                                : 0.35,
                             child: Container(
                               height: 3,
                               decoration: const BoxDecoration(
@@ -199,25 +321,27 @@ class EditorTimelineScreen extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    const Row(
+                    Row(
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.volume_up_rounded,
                           size: 17,
                           color: CineAITheme.textSecondary,
                         ),
-                        SizedBox(width: 7),
+                        const SizedBox(width: 7),
                         Text(
-                          '00:08',
-                          style: TextStyle(
+                          hasVideo
+                              ? _formatTime(_videoController!.value.position.inSeconds)
+                              : '00:04',
+                          style: const TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
-                        Spacer(),
+                        const Spacer(),
                         Text(
-                          '00:32',
-                          style: TextStyle(
+                          _formatTime(totalSeconds),
+                          style: const TextStyle(
                             color: CineAITheme.textSecondary,
                             fontSize: 11,
                           ),
@@ -239,7 +363,13 @@ class EditorTimelineScreen extends ConsumerWidget {
     );
   }
 
-  // Floating "AI Magic" action (visual only, no route behind it).
+  String _formatTime(int seconds) {
+    final m = (seconds ~/ 60).toString().padLeft(2, '0');
+    final s = (seconds % 60).toString().padLeft(2, '0');
+    return '$m:$s';
+  }
+
+  // Floating "AI Magic" action
   Widget _aiMagicFab() {
     return Container(
       decoration: BoxDecoration(
@@ -252,7 +382,7 @@ class EditorTimelineScreen extends ConsumerWidget {
         borderRadius: BorderRadius.circular(28),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
-          onTap: () {},
+          onTap: () => context.push('/explain'),
           child: const Padding(
             padding: EdgeInsets.symmetric(horizontal: 18, vertical: 14),
             child: Row(
@@ -279,8 +409,10 @@ class EditorTimelineScreen extends ConsumerWidget {
   // ---------------------------------------------------------------------------
   // Bottom panel: stack header, ruler + playhead timeline, tools
   // ---------------------------------------------------------------------------
-  Widget _panel(BuildContext context) {
+  Widget _panel(BuildContext context, ActiveProject? project, int totalSeconds) {
     final double bottomInset = MediaQuery.of(context).padding.bottom;
+    final moments = project?.aiTrace?.moments ?? const [];
+    final clipCount = moments.isNotEmpty ? moments.length : 3;
 
     return Container(
       padding: EdgeInsets.fromLTRB(0, 10, 0, bottomInset + 14),
@@ -324,9 +456,9 @@ class EditorTimelineScreen extends ConsumerWidget {
                     ),
                   ),
                 ),
-                const Text(
-                  '3 clips · 00:32',
-                  style: TextStyle(
+                Text(
+                  '$clipCount clips · ${_formatTime(totalSeconds)}',
+                  style: const TextStyle(
                     color: CineAITheme.textSecondary,
                     fontSize: 11,
                   ),
@@ -342,7 +474,7 @@ class EditorTimelineScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 4),
           const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Text(
               'Your best moments, arranged into a story',
               style: TextStyle(
@@ -352,7 +484,7 @@ class EditorTimelineScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 12),
-          _timeline(),
+          _timeline(project, totalSeconds),
           const SizedBox(height: 14),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -371,8 +503,9 @@ class EditorTimelineScreen extends ConsumerWidget {
     );
   }
 
-  Widget _timeline() {
-    const double contentWidth = _pxPerSecond * _totalSeconds;
+  Widget _timeline(ActiveProject? project, int totalSeconds) {
+    final double contentWidth = math.max(320.0, _pxPerSecond * totalSeconds);
+    final moments = project?.aiTrace?.moments;
 
     return SizedBox(
       height: 128,
@@ -386,36 +519,40 @@ class EditorTimelineScreen extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(
+                  SizedBox(
                     height: 24,
                     width: contentWidth,
-                    child: CustomPaint(painter: _RulerPainter()),
+                    child: CustomPaint(
+                      painter: _RulerPainter(totalSeconds: totalSeconds, pxPerSecond: _pxPerSecond),
+                    ),
                   ),
                   const SizedBox(height: 6),
                   Row(
-                    children: [
-                      _buildClipCard(
-                        'Clip 01',
-                        'HIGH MOTION',
-                        const Color(0xFFFB923C),
-                        Icons.directions_run_rounded,
-                        width: _pxPerSecond * 12,
-                      ),
-                      _buildClipCard(
-                        'Clip 02',
-                        'BIG SMILE',
-                        const Color(0xFFFBBF24),
-                        Icons.sentiment_satisfied_alt_rounded,
-                        width: _pxPerSecond * 10,
-                      ),
-                      _buildClipCard(
-                        'Clip 03',
-                        'AUDIO PEAK',
-                        const Color(0xFFA78BFA),
-                        Icons.graphic_eq_rounded,
-                        width: _pxPerSecond * 10,
-                      ),
-                    ],
+                    children: moments != null && moments.isNotEmpty
+                        ? moments.map((m) => _buildMomentClipCard(m, totalSeconds)).toList()
+                        : [
+                            _buildClipCard(
+                              'Clip 01',
+                              'HIGH MOTION',
+                              const Color(0xFFFB923C),
+                              Icons.directions_run_rounded,
+                              width: _pxPerSecond * 10,
+                            ),
+                            _buildClipCard(
+                              'Clip 02',
+                              'BIG SMILE',
+                              const Color(0xFFFBBF24),
+                              Icons.sentiment_satisfied_alt_rounded,
+                              width: _pxPerSecond * 10,
+                            ),
+                            _buildClipCard(
+                              'Clip 03',
+                              'AUDIO PEAK',
+                              const Color(0xFFA78BFA),
+                              Icons.graphic_eq_rounded,
+                              width: _pxPerSecond * 10,
+                            ),
+                          ],
                   ),
                   const SizedBox(height: 6),
                   Container(
@@ -471,6 +608,39 @@ class EditorTimelineScreen extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildMomentClipCard(HighlightMoment moment, int totalSeconds) {
+    final durSec = (moment.endMs - moment.startMs) / 1000;
+    final width = math.max(70.0, _pxPerSecond * durSec);
+
+    final reason = moment.reasonCodes.isNotEmpty
+        ? moment.reasonCodes.first.name.toUpperCase()
+        : 'AI HIGHLIGHT';
+
+    Color color;
+    IconData icon;
+    if (reason.contains('MOTION')) {
+      color = const Color(0xFFFB923C);
+      icon = Icons.directions_run_rounded;
+    } else if (reason.contains('SMILE')) {
+      color = const Color(0xFFFBBF24);
+      icon = Icons.sentiment_satisfied_alt_rounded;
+    } else if (reason.contains('AUDIO')) {
+      color = const Color(0xFFA78BFA);
+      icon = Icons.graphic_eq_rounded;
+    } else {
+      color = const Color(0xFF38BDF8);
+      icon = Icons.auto_awesome_rounded;
+    }
+
+    return _buildClipCard(
+      moment.clipId.replaceAll('_', ' ').toUpperCase(),
+      reason,
+      color,
+      icon,
+      width: width,
     );
   }
 
@@ -582,9 +752,7 @@ class EditorTimelineScreen extends ConsumerWidget {
           style: TextStyle(
             fontSize: 10,
             fontWeight: active ? FontWeight.w800 : FontWeight.w600,
-            color: active
-                ? CineAITheme.lavender
-                : CineAITheme.textSecondary,
+            color: active ? CineAITheme.lavender : CineAITheme.textSecondary,
           ),
         ),
       ],
@@ -592,9 +760,12 @@ class EditorTimelineScreen extends ConsumerWidget {
   }
 }
 
-/// Time ruler: a tick every second, a label every two seconds.
+/// Dynamic time ruler
 class _RulerPainter extends CustomPainter {
-  const _RulerPainter();
+  final int totalSeconds;
+  final double pxPerSecond;
+
+  const _RulerPainter({required this.totalSeconds, required this.pxPerSecond});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -602,8 +773,8 @@ class _RulerPainter extends CustomPainter {
       ..color = CineAITheme.textSecondary.withValues(alpha: .6)
       ..strokeWidth = 1;
 
-    for (int s = 0; s <= EditorTimelineScreen._totalSeconds; s++) {
-      final double x = s * EditorTimelineScreen._pxPerSecond;
+    for (int s = 0; s <= totalSeconds; s++) {
+      final double x = s * pxPerSecond;
       final bool major = s % 2 == 0;
 
       canvas.drawLine(
@@ -630,10 +801,11 @@ class _RulerPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _RulerPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _RulerPainter oldDelegate) =>
+      oldDelegate.totalSeconds != totalSeconds;
 }
 
-/// Decorative audio waveform for the music track.
+/// Decorative audio waveform
 class _WavePainter extends CustomPainter {
   const _WavePainter();
 
