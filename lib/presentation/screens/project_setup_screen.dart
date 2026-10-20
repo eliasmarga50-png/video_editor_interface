@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/theme/theme.dart';
 import '../../domain/value_objects/vibe.dart';
 import '../../domain/value_objects/platform.dart';
+import '../../application/providers/project_providers.dart';
 import '../widgets/cine_widgets.dart';
 
 class ProjectSetupScreen extends ConsumerStatefulWidget {
@@ -158,7 +159,16 @@ class _ProjectSetupScreenState
           child: GradientButton(
             label: 'Generate',
             icon: Icons.auto_awesome_rounded,
-            onPressed: () => context.push('/analyzing'),
+            onPressed: () {
+              ref.read(videoGenWorkflowProvider.notifier).startGeneration(
+                    prompt: _promptController.text.trim(),
+                    style: selectedStyle,
+                    platform: selectedPlatform,
+                    vibe: selectedVibe,
+                    durationMs: targetLengthMs,
+                  );
+              context.push('/analyzing?mode=generate');
+            },
           ),
         ),
       ),
