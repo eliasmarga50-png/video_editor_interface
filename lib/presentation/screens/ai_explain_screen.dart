@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
+import '../../application/providers/project_providers.dart';
 import '../../core/theme/theme.dart';
 import '../widgets/ai_explain_card.dart';
 import '../widgets/cine_widgets.dart';
@@ -10,6 +11,26 @@ class AIExplainScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final project = ref.watch(activeProjectProvider);
+    final trace = project?.aiTrace;
+
+    final climaxMoment = trace?.narrativeArc.climax;
+    final climaxScore = climaxMoment != null
+        ? '${(climaxMoment.score * 100).round()}%'
+        : '95%';
+    final climaxReasons = climaxMoment != null
+        ? climaxMoment.reasonCodes.map((r) => r.name).join(', ')
+        : 'High motion peak & big smile';
+
+    final colorGrade = trace?.colorGrade;
+    final bpm = trace?.chosenBpm ?? 124.0;
+    final trackName = trace?.chosenTrack ?? 'energetic_beat_01.mp3';
+
+    final llmEngine = trace?.modelVersions['narrativeLlm'] ??
+        trace?.modelVersions['llm'] ??
+        'CineAI Multimodal Planner';
+    final mediaEngine = trace?.modelVersions['mediaEngine'] ?? 'AI Video Synthesis Engine';
+
     return Scaffold(
       appBar: AppBar(title: const Text('AI decision trace')),
       body: AnimationLimiter(
@@ -50,20 +71,22 @@ class AIExplainScreen extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(width: 14),
-                    const Expanded(
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Why this edit works',
-                            style: TextStyle(
-                              fontSize: 17,
+                            project?.title != null
+                                ? 'Why this edit works: ${project!.title}'
+                                : 'Why this edit works',
+                            style: const TextStyle(
+                              fontSize: 16,
                               fontWeight: FontWeight.w800,
                             ),
                           ),
-                          SizedBox(height: 5),
-                          Text(
-                            'A transparent look at the decisions behind your video.',
+                          const SizedBox(height: 5),
+                          const Text(
+                            'A transparent look at the AI reasoning behind your video.',
                             style: TextStyle(
                               color: CineAITheme.textSecondary,
                               fontSize: 12,
@@ -79,24 +102,31 @@ class AIExplainScreen extends ConsumerWidget {
               const SizedBox(height: 18),
               _buildTraceCard(
                 'Highlight selection',
-                'High motion peak and a big smile detected at 00:04.',
-                'CONFIDENCE · 95%',
+                'Story peak detected with reasons: $climaxReasons.',
+                'CONFIDENCE · $climaxScore',
                 Icons.local_fire_department_rounded,
                 const Color(0xFFFB923C),
               ),
               _buildTraceCard(
                 'Color grade recipe',
-                'Applied a cinematic teal-and-orange look with a contrast boost.',
-                'MODEL · COLORIST V1',
+                'Applied custom grade with ${colorGrade?.contrast ?? 1.15}x contrast and ${colorGrade?.saturation ?? 1.08}x saturation tailored for ${project?.vibe.name.toUpperCase() ?? 'HYPE'} vibe.',
+                'MODEL · COLORIST V1.4',
                 Icons.palette_outlined,
                 const Color(0xFF38BDF8),
               ),
               _buildTraceCard(
                 'Music beat sync',
-                'Cut points aligned with the detected 124 BPM audio beat markers.',
-                'TRACK · ENERGETIC BEAT 01',
+                'Cut points aligned with detected ${bpm.round()} BPM audio cadence.',
+                'TRACK · ${trackName.split('/').last.toUpperCase()}',
                 Icons.graphic_eq_rounded,
                 const Color(0xFFA78BFA),
+              ),
+              _buildTraceCard(
+                'Coordinated AI engines',
+                'Orchestrated using $llmEngine for narrative planning and $mediaEngine for video sourcing.',
+                'PIPELINE · CINEAI DUAL-WORKFLOW',
+                Icons.hub_rounded,
+                const Color(0xFF10B981),
               ),
             ],
           ),
