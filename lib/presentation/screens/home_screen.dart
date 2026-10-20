@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:go_router/go_router.dart';
+import '../../application/providers/project_providers.dart';
 import '../../core/theme/theme.dart';
+import '../../domain/value_objects/platform.dart';
+import '../../domain/value_objects/vibe.dart';
 import '../widgets/cine_widgets.dart';
 
 class _Sample {
@@ -161,11 +164,11 @@ class HomeScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 14),
-              _pad(_paths(context)),
+              _pad(_paths(context, ref)),
               const SizedBox(height: 28),
               _LoadGate(
                 placeholder: _skeleton(),
-                builder: (context) => _content(context),
+                builder: (context) => _content(context, ref),
               ),
             ],
           ),
@@ -262,7 +265,7 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _paths(BuildContext context) {
+  Widget _paths(BuildContext context, WidgetRef ref) {
     return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -285,9 +288,15 @@ class HomeScreen extends ConsumerWidget {
               subtitle: 'Upload raw clips, AI edits them for you',
               badge: 'Zero editing',
               colors: const [CineAITheme.blue, Color(0xFF22D3EE)],
-              // No upload route exists yet, so this points at the AI
-              // analysis step (which continues into /editor).
-              onTap: () => context.push('/analyzing'),
+              onTap: () {
+                ref.read(autoEditWorkflowProvider.notifier).startAutoEdit(
+                      title: 'Travel Adventure — Coastal Roads',
+                      vibe: Vibe.travel,
+                      platform: PlatformTarget.instagramReel,
+                      targetLengthMs: 30000,
+                    );
+                context.push('/analyzing?mode=autoedit');
+              },
             ),
           ),
         ],
@@ -333,7 +342,7 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _content(BuildContext context) {
+  Widget _content(BuildContext context, WidgetRef ref) {
     return AnimationLimiter(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -346,7 +355,7 @@ class HomeScreen extends ConsumerWidget {
           children: [
             _trending(),
             const SizedBox(height: 28),
-            _drafts(context),
+            _drafts(context, ref),
             const SizedBox(height: 28),
             _recent(context),
           ],
@@ -393,7 +402,9 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _drafts(BuildContext context) {
+  Widget _drafts(BuildContext context, WidgetRef ref) {
+    final activeProject = ref.watch(activeProjectProvider);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -404,7 +415,33 @@ class HomeScreen extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 14),
-        if (_draftSamples.isEmpty)
+        if (activeProject != null)
+          _pad(
+            SizedBox(
+              height: 196,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                children: [
+                  SizedBox(
+                    width: 154,
+                    child: VideoThumbCard(
+                      title: activeProject.title,
+                      meta:
+                          '${activeProject.targetLengthMs ~/ 1000}s · ${activeProject.platform.aspectRatio}',
+                      colors: const [Color(0xFF8B5CF6), Color(0xFF0EA5E9)],
+                      icon: Icons.movie_filter_rounded,
+                      badge: 'ACTIVE DRAFT',
+                      duration:
+                          '0:${(activeProject.targetLengthMs ~/ 1000).toString().padLeft(2, '0')}',
+                      heroTag: 'editor-preview',
+                      onTap: () => context.push('/editor'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          )
+        else
           _pad(
             SizedBox(
               width: double.infinity,
@@ -418,34 +455,12 @@ class HomeScreen extends ConsumerWidget {
                   message:
                       'No drafts yet — your AI-edited projects will appear here',
                   ctaLabel: 'Auto-edit my footage',
-                  onCta: () => context.push('/analyzing'),
+                  onCta: () {
+                    ref.read(autoEditWorkflowProvider.notifier).startAutoEdit();
+                    context.push('/analyzing?mode=autoedit');
+                  },
                 ),
               ),
-            ),
-          )
-        else
-          SizedBox(
-            height: 196,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              itemCount: _draftSamples.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 12),
-              itemBuilder: (context, index) {
-                final _Sample d = _draftSamples[index];
-                return SizedBox(
-                  width: 138,
-                  child: VideoThumbCard(
-                    title: d.title,
-                    meta: d.meta,
-                    colors: d.colors,
-                    icon: d.icon,
-                    badge: 'DRAFT',
-                    duration: d.duration,
-                    onTap: () => context.push('/editor'),
-                  ),
-                );
-              },
             ),
           ),
       ],
