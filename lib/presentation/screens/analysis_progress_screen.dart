@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../application/providers/project_providers.dart';
 import '../../core/theme/theme.dart';
+import '../../domain/value_objects/platform.dart';
+import '../../domain/value_objects/vibe.dart';
 import '../widgets/cine_widgets.dart';
 
 class AnalysisProgressScreen extends ConsumerStatefulWidget {
@@ -77,7 +79,7 @@ class _AnalysisProgressScreenState
       _didNavigate = true;
       Future.delayed(const Duration(milliseconds: 400), () {
         if (!mounted) return;
-        context.go('/editor');
+        if (context.mounted) context.go('/editor');
       });
     }
 
