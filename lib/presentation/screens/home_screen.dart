@@ -70,9 +70,6 @@ class HomeScreen extends ConsumerWidget {
     ),
   ];
 
-  // Empty on purpose: shows the "Continue Editing" empty state.
-  static const List<_Sample> _draftSamples = [];
-
   static const List<_Sample> _projects = [
     _Sample(
       title: 'Travel Vlog — Bali Sunset',
