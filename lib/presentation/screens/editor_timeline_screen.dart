@@ -474,7 +474,7 @@ class _EditorTimelineScreenState extends ConsumerState<EditorTimelineScreen> {
           ),
           const SizedBox(height: 4),
           const Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: EdgeInsets.symmetric(horizontal: 16),
             child: Text(
               'Your best moments, arranged into a story',
               style: TextStyle(
